@@ -1,0 +1,7 @@
+{
+  "deploy": {
+    "database": true
+  },
+  "_note": "TEMPORARY guest access. VITE_AUTH_ENABLED=false skips login (shared local user). To require sign-in again, set it to \"true\" or delete the key.",
+  "VITE_AUTH_ENABLED": "false"
+}

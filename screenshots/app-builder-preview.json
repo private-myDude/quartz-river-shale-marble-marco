@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Haven",
+      "hasCanvas": false,
+      "bodyTextLen": 29,
+      "bodyTextHash": "c1f91426537f07b32911ce277c2057a18e1685e92c87ea15cb4deba92ffd1224",
+      "bodyTextPrefix": "Haven Opening on this device…",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Haven",
+      "hasCanvas": false,
+      "bodyTextLen": 29,
+      "bodyTextHash": "c1f91426537f07b32911ce277c2057a18e1685e92c87ea15cb4deba92ffd1224",
+      "bodyTextPrefix": "Haven Opening on this device…",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
