@@ -16,6 +16,7 @@ import type { PacketHeader } from "@/lib/haven/packet";
 import { useHavenSession } from "@/lib/haven/session";
 import { Atmosphere, HavenMark } from "./atmosphere";
 import { HomeScreen } from "./home";
+import { InboxScreen } from "./inbox";
 import { LockScreen } from "./lock-screen";
 import { PeopleScreen } from "./people";
 import { Recorder, type RecorderPayload } from "./recorder";
@@ -252,6 +253,15 @@ export function HavenApp() {
             me={profile}
             onOpen={(id) => void openThread(id)}
             onChanged={() => session.invalidate()}
+          />
+        ) : null}
+        {tab === "inbox" ? (
+          <InboxScreen
+            friends={friends}
+            circles={circles}
+            videos={videos}
+            myId={user.id}
+            onOpen={(id) => void openThread(id)}
           />
         ) : null}
         {tab === "you" ? (

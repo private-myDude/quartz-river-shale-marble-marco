@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { Camera, Home, User, Users } from "lucide-react";
+import { Camera, Home, Inbox, User, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TabId = "home" | "people" | "you";
+export type TabId = "home" | "people" | "inbox" | "you";
 
 export function TabBar({
   tab,
@@ -17,29 +17,27 @@ export function TabBar({
 }) {
   return (
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <div className="pointer-events-auto relative flex w-full max-w-md items-center rounded-full glass px-3 py-2">
-        <div className="flex flex-1 items-center gap-1">
-          <TabBtn active={tab === "home"} label="Home" onClick={() => onTab("home")} badge={inboxCount}>
-            <Home className="size-5" />
-          </TabBtn>
-          <TabBtn active={tab === "people"} label="People" onClick={() => onTab("people")}>
-            <Users className="size-5" />
-          </TabBtn>
-        </div>
-        <span className="w-16 shrink-0" aria-hidden="true" />
-        <div className="flex flex-1 items-center justify-end">
-          <TabBtn active={tab === "you"} label="You" onClick={() => onTab("you")}>
-            <User className="size-5" />
-          </TabBtn>
-        </div>
+      <div className="pointer-events-auto grid w-full max-w-md grid-cols-5 items-center justify-items-center rounded-full glass px-2 py-2">
+        <TabBtn active={tab === "home"} label="Home" onClick={() => onTab("home")}>
+          <Home className="size-5" />
+        </TabBtn>
+        <TabBtn active={tab === "people"} label="People" onClick={() => onTab("people")}>
+          <Users className="size-5" />
+        </TabBtn>
         <button
           type="button"
           onClick={onCamera}
           aria-label="Record"
-          className="absolute left-1/2 top-0 grid size-16 -translate-x-1/2 -translate-y-5 place-items-center rounded-full bg-fog text-accent-fg shadow-[0_0_0_6px_var(--color-ring)] transition-transform active:scale-[0.96]"
+          className="grid size-16 -translate-y-5 place-items-center rounded-full bg-fog text-accent-fg shadow-[0_0_0_6px_var(--color-ring)] transition-transform active:scale-[0.96]"
         >
           <Camera className="size-7" />
         </button>
+        <TabBtn active={tab === "inbox"} label="Inbox" onClick={() => onTab("inbox")} badge={inboxCount}>
+          <Inbox className="size-5" />
+        </TabBtn>
+        <TabBtn active={tab === "you"} label="You" onClick={() => onTab("you")}>
+          <User className="size-5" />
+        </TabBtn>
       </div>
     </nav>
   );
