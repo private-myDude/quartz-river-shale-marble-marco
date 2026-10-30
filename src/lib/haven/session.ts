@@ -28,6 +28,7 @@ import { writeBackupToFolder } from "./cloud";
 import { flushOutbox } from "./outbox";
 import { notifyNewClip, registerHavenWorker } from "./notify";
 import { shredPeerCopies } from "./signal";
+import { clearSignupName, readSignupName } from "./signup-name";
 
 async function ensureLocalIdentity(fallbackName: string): Promise<LocalIdentity> {
   let ident = await loadIdentity();
@@ -213,9 +214,10 @@ export function useHavenSession() {
       const publicKey = await bootstrapVault();
       setUnlocked(true);
       const fallback = authEnabled
-        ? (user?.displayName ?? user?.primaryEmail?.split("@")[0] ?? "Friend")
+        ? (readSignupName() || user?.displayName || user?.primaryEmail?.split("@")[0] || "Friend")
         : "You";
       const ident = await ensureLocalIdentity(fallback);
+      clearSignupName();
       setIdentity(ident);
       await ensureProfile({ data: { publicKey, handleHash: await hashHandle(ident.handle) } });
       await qc.invalidateQueries({ queryKey: ["haven", "profile"] });

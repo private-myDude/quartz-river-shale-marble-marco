@@ -210,13 +210,26 @@ export const auth = betterAuth({
   // flicker-prevention guidance (gate on `isPending`; SSR the session).
   session: { cookieCache: { enabled: true, maxAge: 300 } },
 
-  // Invite-only: reject new accounts that aren't the owner, allowlisted, or invited.
   databaseHooks: {
     user: {
       create: {
+        // Invite-only: reject new accounts that aren't the owner, allowlisted, or
+        // invited. The name never reaches the server — it lives on the device.
         before: async (user, ctx) => {
           await assertMayCreateAccount(user.email, ctx?.request?.headers ?? ctx?.headers);
+          return { data: { ...user, name: "" } };
         },
+      },
+      update: {
+        before: async (user) => ("name" in user ? { data: { ...user, name: "" } } : undefined),
+      },
+    },
+    session: {
+      create: {
+        // Don't keep the IP address or device type of each sign-in.
+        before: async (session) => ({
+          data: { ...session, ipAddress: null, userAgent: null },
+        }),
       },
     },
   },

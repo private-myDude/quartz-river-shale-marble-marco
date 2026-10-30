@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Atmosphere, HavenMark } from "@/components/haven/atmosphere";
 import { resolvePhoneLogin } from "@/lib/haven/api";
+import { rememberSignupName } from "@/lib/haven/signup-name";
 import { looksLikePhone, normalizePhone } from "@/lib/haven/phone";
 
 export const Route = createFileRoute("/login")({ component: Login });
@@ -57,6 +58,7 @@ function Login() {
         email = resolved.email;
       }
       if (mode === "up") {
+        rememberSignupName(name.trim());
         const { error: err } = await authClient.signUp.email({
           email,
           password,
