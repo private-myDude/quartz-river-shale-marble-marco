@@ -119,13 +119,39 @@ export async function disablePush(): Promise<void> {
  * Hand quiet hours to the service worker, which shows pushes while Haven is
  * closed and can't read the app's settings itself.
  */
-export async function syncWorkerPrefs(prefs: Pick<Prefs, "quietHours" | "quietStart" | "quietEnd"> = readPrefs()): Promise<void> {
+export async function syncWorkerPrefs(
+  prefs: Pick<Prefs, "quietHours" | "quietStart" | "quietEnd" | "showSender"> = readPrefs(),
+): Promise<void> {
   if (typeof caches === "undefined") return;
   try {
     const cache = await caches.open("haven-prefs");
-    const { quietHours, quietStart, quietEnd } = prefs;
-    await cache.put("/__haven-prefs", new Response(JSON.stringify({ quietHours, quietStart, quietEnd })));
+    const { quietHours, quietStart, quietEnd, showSender } = prefs;
+    await cache.put(
+      "/__haven-prefs",
+      new Response(JSON.stringify({ quietHours, quietStart, quietEnd, showSender })),
+    );
+    if (!showSender) await cache.delete("/__haven-names");
   } catch {
     /* cache unavailable — pushes just won't be silenced */
+  }
+}
+
+/**
+ * Give the service worker this phone's contact names so a push can say who a
+ * clip is from. Kept on this device only; cleared when "Show who sent it" is off.
+ */
+export async function syncWorkerNames(friends: { userId: string; displayName: string }[]): Promise<void> {
+  if (typeof caches === "undefined") return;
+  try {
+    const cache = await caches.open("haven-prefs");
+    if (!readPrefs().showSender) {
+      await cache.delete("/__haven-names");
+      return;
+    }
+    const names: Record<string, string> = {};
+    for (const f of friends) if (f.displayName) names[f.userId] = f.displayName;
+    await cache.put("/__haven-names", new Response(JSON.stringify(names)));
+  } catch {
+    /* cache unavailable — alerts stay generic */
   }
 }

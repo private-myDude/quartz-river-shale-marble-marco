@@ -25,6 +25,8 @@ export type Prefs = {
   allowForward: boolean;
   sendReceipts: boolean;
   notifications: boolean;
+  /** Show the sender's name in push alerts (looked up on this phone only). */
+  showSender: boolean;
   quietHours: boolean;
   quietStart: string;
   quietEnd: string;
@@ -89,6 +91,7 @@ export const DEFAULT_PREFS: Prefs = {
   allowForward: true,
   sendReceipts: true,
   notifications: true,
+  showSender: true,
   quietHours: false,
   quietStart: "22:00",
   quietEnd: "07:00",
@@ -133,6 +136,7 @@ export function parsePrefs(raw: unknown): Prefs {
     allowForward: rec.allowForward === false ? false : true,
     sendReceipts: rec.sendReceipts === false ? false : true,
     notifications: rec.notifications === false ? false : true,
+    showSender: rec.showSender === false ? false : true,
     quietHours: rec.quietHours === true,
     quietStart: typeof rec.quietStart === "string" ? rec.quietStart : DEFAULT_PREFS.quietStart,
     quietEnd: typeof rec.quietEnd === "string" ? rec.quietEnd : DEFAULT_PREFS.quietEnd,

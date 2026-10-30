@@ -352,7 +352,7 @@ const envelopeInput = z.object({
 export const publishEnvelope = createServerFn({ method: "POST" })
   .validator((data: unknown) => envelopeInput.parse(data))
   .middleware([authMiddleware])
-  .handler(async ({ data }) => {
+  .handler(async ({ context, data }) => {
     if (!isTtlMode(data.ttlMode)) throw new Error("Invalid lifetime");
     if (data.ciphertext.length > 48_000_000) throw new Error("Clip is too large");
     const sql = await getSql();
@@ -380,7 +380,7 @@ export const publishEnvelope = createServerFn({ method: "POST" })
       )`;
     if (data.notify) {
       const { sendPushTo } = await import("./push.server");
-      await sendPushTo(sql, data.recipientId).catch(() => undefined);
+      await sendPushTo(sql, data.recipientId, context.userId).catch(() => undefined);
     }
     return { id };
   });

@@ -26,7 +26,7 @@ import { isPlayable, type Circle, type Friend, type Profile, type StoredVideo } 
 import { readPrefs, setPrefs } from "./prefs";
 import { writeBackupToFolder } from "./cloud";
 import { flushOutbox } from "./outbox";
-import { enablePush, notifyNewClip, registerHavenWorker } from "./notify";
+import { enablePush, notifyNewClip, registerHavenWorker, syncWorkerNames } from "./notify";
 import { shredPeerCopies } from "./signal";
 import { clearSignupName, readSignupName } from "./signup-name";
 
@@ -178,6 +178,10 @@ export function useHavenSession() {
     void refreshVideos();
     void refreshGraph();
   }, [unlocked, refreshVideos, refreshGraph]);
+
+  useEffect(() => {
+    if (unlocked) void syncWorkerNames(friends);
+  }, [unlocked, friends]);
 
   useEffect(() => {
     if (!unlocked) return;

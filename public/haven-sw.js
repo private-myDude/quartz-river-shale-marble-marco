@@ -19,7 +19,8 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// Push from the server when a clip arrives. The payload never says who sent it.
+// Push from the server when a clip arrives. It carries only the sender's account id;
+// the name shown comes from this phone's own contact list.
 function inQuietHours(p) {
   if (!p || !p.quietHours) return false;
   const now = new Date();
@@ -32,24 +33,36 @@ function inQuietHours(p) {
   return start < end ? cur >= start && cur < end : cur >= start || cur < end;
 }
 
-async function readPrefs() {
+async function readCached(path) {
   try {
     const cache = await caches.open("haven-prefs");
-    const res = await cache.match("/__haven-prefs");
+    const res = await cache.match(path);
     return res ? await res.json() : null;
   } catch {
     return null;
   }
 }
 
+function pushData(event) {
+  try {
+    return event.data ? event.data.json() : {};
+  } catch {
+    return {};
+  }
+}
+
 self.addEventListener("push", (event) => {
   event.waitUntil(
     (async () => {
-      const prefs = await readPrefs();
+      const prefs = await readCached("/__haven-prefs");
+      const data = pushData(event);
+      // The push only carries an account id; the name comes from this phone's contacts.
+      const names = prefs && prefs.showSender === false ? null : await readCached("/__haven-names");
+      const name = names && typeof data.from === "string" ? names[data.from] : null;
       // iPhone requires every push to show a notification, so quiet hours
       // silence it rather than skip it.
-      await self.registration.showNotification("New clip in Haven", {
-        body: "Someone sent you a sealed clip.",
+      await self.registration.showNotification(name ? `${name} sent you a clip` : "New clip in Haven", {
+        body: name ? "Tap to watch in Haven." : "Someone sent you a sealed clip.",
         icon: "/icon-192.png",
         badge: "/icon-192.png",
         tag: "haven-inbox",

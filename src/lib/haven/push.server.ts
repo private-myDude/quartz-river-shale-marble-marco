@@ -19,15 +19,16 @@ function configured(): boolean {
 }
 
 /**
- * Wake every device of `userId`. The payload only says a clip arrived — the
- * push service (Apple/Google) never learns who sent it or what it holds.
- * Best-effort: failures never block sending the clip.
+ * Wake every device of `userId`. The payload is encrypted to the device, so
+ * the push service (Apple/Google) can't read it. It carries only the sender's
+ * account id, which the phone turns into a name from its own contact list.
+ * Nothing is stored. Best-effort: failures never block sending the clip.
  */
-export async function sendPushTo(sql: Sql, userId: string): Promise<void> {
+export async function sendPushTo(sql: Sql, userId: string, fromUserId: string): Promise<void> {
   if (!configured()) return;
   const subs = await sql<{ endpoint: string; p256dh: string; auth: string }>`
     select endpoint, p256dh, auth from push_subscriptions where user_id = ${userId}`;
-  const payload = JSON.stringify({ type: "clip" });
+  const payload = JSON.stringify({ type: "clip", from: fromUserId });
   await Promise.all(
     subs.map(async (sub) => {
       try {

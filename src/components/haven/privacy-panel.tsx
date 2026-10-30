@@ -42,8 +42,8 @@ export function PrivacyPanel({
   const prefs = usePrefs();
 
   useEffect(() => {
-    const { quietHours, quietStart, quietEnd } = prefs;
-    void syncWorkerPrefs({ quietHours, quietStart, quietEnd });
+    const { quietHours, quietStart, quietEnd, showSender } = prefs;
+    void syncWorkerPrefs({ quietHours, quietStart, quietEnd, showSender });
   }, [prefs]);
 
   async function syncProfile(partial: {
@@ -137,6 +137,17 @@ export function PrivacyPanel({
             }}
           />
         </label>
+        {prefs.notifications ? (
+          <label className="flex items-center justify-between gap-4 px-4 py-4">
+            <span>
+              <span className="block text-sm font-medium">Show who sent it</span>
+              <span className="text-xs text-mute">
+                Alerts say “Grandma sent you a clip”. The name comes from this phone, and shows on your lock screen.
+              </span>
+            </span>
+            <Toggle on={prefs.showSender} onClick={() => setPrefs({ showSender: !prefs.showSender })} />
+          </label>
+        ) : null}
         <label className="flex items-center justify-between gap-4 px-4 py-4">
           <span>
             <span className="block text-sm font-medium">Quiet hours</span>
