@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { RedirectToSignIn } from "@/lib/auth/gates";
 import { encryptAndStoreVideo, sealClip, videosForPeer } from "@/lib/haven/vault";
@@ -31,6 +31,20 @@ export function HavenApp() {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [cameraFor, setCameraFor] = useState<string | null>(null);
   const [threadVideos, setThreadVideos] = useState<Awaited<ReturnType<typeof videosForPeer>>>([]);
+  const [threadStartClip, setThreadStartClip] = useState<string | null>(null);
+  const [cameraClips, setCameraClips] = useState<Awaited<ReturnType<typeof videosForPeer>>>([]);
+
+  // Load the conversation's clips so the camera can show them along the bottom.
+  useEffect(() => {
+    if (!cameraFor) return;
+    let cancelled = false;
+    void videosForPeer(cameraFor).then((clips) => {
+      if (!cancelled) setCameraClips(clips);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraFor]);
 
   const { user, isPending, profile, needsLock, lockKnown, unlocked, friends, circles, videos, latest } =
     session;
@@ -44,8 +58,9 @@ export function HavenApp() {
     return friends.find((f) => f.userId === id)?.displayName ?? "Friend";
   }, [threadId, cameraFor, friends, circles]);
 
-  async function openThread(peerId: string) {
+  async function openThread(peerId: string, clipId: string | null = null) {
     setThreadVideos(await videosForPeer(peerId));
+    setThreadStartClip(clipId);
     setThreadId(peerId);
   }
 
@@ -200,6 +215,12 @@ export function HavenApp() {
         toName={threadName}
         peerId={cameraFor}
         defaultTtl={profile.defaultTtl}
+        clips={cameraClips}
+        onOpenClip={(clipId) => {
+          const peerId = cameraFor;
+          setCameraFor(null);
+          void openThread(peerId, clipId);
+        }}
         onCancel={() => setCameraFor(null)}
         onSend={sendClip}
       />
@@ -216,6 +237,7 @@ export function HavenApp() {
         circles={circles}
         myId={user.id}
         me={profile}
+        initialClipId={threadStartClip}
         onBack={() => setThreadId(null)}
         onReply={() => {
           setCameraFor(threadId);

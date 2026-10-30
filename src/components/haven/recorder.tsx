@@ -13,8 +13,9 @@ import {
   pickMime,
 } from "@/lib/haven/media";
 import { readPrefs } from "@/lib/haven/prefs";
-import { TTL_OPTIONS, ttlLabel, type MediaKind, type TtlMode } from "@/lib/haven/types";
+import { TTL_OPTIONS, ttlLabel, type MediaKind, type StoredVideo, type TtlMode } from "@/lib/haven/types";
 import { cn } from "@/lib/utils";
+import { ClipRail } from "./clip-rail";
 import { NotesChip, useThreadNote } from "./notes-pad";
 
 export type RecorderPayload = {
@@ -31,12 +32,17 @@ export function Recorder({
   toName,
   peerId,
   defaultTtl,
+  clips,
+  onOpenClip,
   onCancel,
   onSend,
 }: {
   toName: string;
   peerId: string;
   defaultTtl: TtlMode;
+  /** This conversation's clips, shown along the bottom like the thread view. */
+  clips: StoredVideo[];
+  onOpenClip: (clipId: string) => void;
   onCancel: () => void;
   onSend: (payload: RecorderPayload) => Promise<void>;
 }) {
@@ -345,7 +351,7 @@ export function Recorder({
         </p>
       ) : null}
 
-      <div className="relative z-10 mt-auto flex flex-col items-center gap-5 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-10 mt-auto flex flex-col items-center gap-5 px-6 pb-4">
         <NotesChip text={notes.text} className="w-full" />
         {error ? (
           <p className="glass rounded-full px-4 py-2 text-center text-sm text-fog">{error}</p>
@@ -410,6 +416,17 @@ export function Recorder({
             </Button>
           </div>
         )}
+      </div>
+      <div className="relative z-10 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <ClipRail
+          clips={clips}
+          activeIndex={-1}
+          disabled={recording || sending}
+          onPick={(i) => {
+            const clip = clips[i];
+            if (clip) onOpenClip(clip.id);
+          }}
+        />
       </div>
     </div>
   );

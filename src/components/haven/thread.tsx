@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import {
   ArrowLeft,
   Ban,
-  Camera,
   CornerUpRight,
   Download,
   EyeOff,
@@ -12,6 +11,7 @@ import {
   Pause,
   Play,
   Share2,
+  Trash2,
   SkipBack,
   SkipForward,
   Volume2,
@@ -45,6 +45,7 @@ import {
   type StoredVideo,
 } from "@/lib/haven/types";
 import { cn } from "@/lib/utils";
+import { ClipRail } from "./clip-rail";
 import { NotesSheet, useThreadNote } from "./notes-pad";
 
 function formatTime(seconds: number): string {
@@ -59,7 +60,9 @@ function nextSpeed(current: PlaybackRate): PlaybackRate {
   return SPEED_OPTIONS[(i + 1) % SPEED_OPTIONS.length] ?? 1;
 }
 
-function initialIndex(clips: StoredVideo[]): number {
+function initialIndex(clips: StoredVideo[], clipId?: string | null): number {
+  const picked = clipId ? clips.findIndex((v) => v.id === clipId) : -1;
+  if (picked >= 0) return picked;
   const unread = clips.findIndex((v) => !v.outgoing && !v.viewedAt);
   if (unread >= 0) return unread;
   return clips.length ? clips.length - 1 : 0;
@@ -83,6 +86,7 @@ export function ThreadView({
   circles,
   myId,
   me,
+  initialClipId,
   onBack,
   onReply,
   onChanged,
@@ -94,17 +98,18 @@ export function ThreadView({
   circles: Circle[];
   myId: string;
   me: Pick<Profile, "handle" | "displayName">;
+  /** Clip to open on, e.g. one tapped in the camera's clip rail. */
+  initialClipId?: string | null;
   onBack: () => void;
   onReply: () => void;
   onChanged: () => void;
 }) {
   const clips = videos;
-  const [index, setIndex] = useState(() => initialIndex(clips));
+  const [index, setIndex] = useState(() => initialIndex(clips, initialClipId));
   const current = clips[index];
   const [src, setSrc] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
   const mediaRef = useRef<HTMLVideoElement>(null);
-  const railRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(true);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -130,7 +135,7 @@ export function ThreadView({
   const reactionEntries = Object.entries(reactions).filter(([, n]) => n > 0);
 
   useEffect(() => {
-    setIndex(initialIndex(clips));
+    setIndex(initialIndex(clips, initialClipId));
   }, [clips.length]);
 
   useEffect(() => {
@@ -167,11 +172,6 @@ export function ThreadView({
     if (!el) return;
     el.playbackRate = prefs.playbackRate;
   }, [prefs.playbackRate, src]);
-
-  useEffect(() => {
-    const node = railRef.current?.querySelector(`[data-clip-index="${index}"]`);
-    node?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
-  }, [index]);
 
   useEffect(() => {
     if (!friend?.publicKey) {
@@ -630,58 +630,47 @@ export function ThreadView({
           </div>
         ) : null}
 
-        <div className="flex w-full items-center justify-center gap-3 px-5">
-          {current && !current.outgoing ? (
-            <Button variant="glass" size="icon" onClick={() => setReactOpen((v) => !v)} aria-label="React">
-              <span className="text-lg leading-none">{reactionEntries[0]?.[0] ?? "❤️"}</span>
-            </Button>
-          ) : null}
-          {current ? (
-            <Button variant="glass" size="pill" onClick={() => setBurnOpen(true)}>
-              Destroy
-            </Button>
-          ) : null}
-          {canForward ? (
-            <Button variant="glass" size="icon" onClick={() => setForwardOpen(true)} aria-label="Forward">
-              <CornerUpRight className="size-5" />
-            </Button>
-          ) : null}
-          {canSave ? (
-            <>
-              <Button variant="glass" size="icon" onClick={() => void shareClip()} aria-label="Share">
-                <Share2 className="size-5" />
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-3 px-5">
+          <div className="flex items-center justify-end gap-2">
+            {current && !current.outgoing ? (
+              <Button variant="glass" size="icon" onClick={() => setReactOpen((v) => !v)} aria-label="React">
+                <span className="text-lg leading-none">{reactionEntries[0]?.[0] ?? "❤️"}</span>
               </Button>
-              <Button variant="glass" size="icon" onClick={() => void downloadClip()} aria-label="Save">
-                <Download className="size-5" />
+            ) : null}
+            {canForward ? (
+              <Button variant="glass" size="icon" onClick={() => setForwardOpen(true)} aria-label="Forward">
+                <CornerUpRight className="size-5" />
               </Button>
-            </>
-          ) : null}
-          <Button size="pill" onClick={onReply}>
-            <Camera className="size-4" />
-            Reply
-          </Button>
+            ) : null}
+          </div>
+          <RecordButton onClick={onReply} />
+          <div className="flex items-center gap-2">
+            {canSave ? (
+              <>
+                <Button variant="glass" size="icon" onClick={() => void shareClip()} aria-label="Share">
+                  <Share2 className="size-5" />
+                </Button>
+                <Button variant="glass" size="icon" onClick={() => void downloadClip()} aria-label="Save">
+                  <Download className="size-5" />
+                </Button>
+              </>
+            ) : null}
+            {current ? (
+              <Button variant="glass" size="icon" onClick={() => setBurnOpen(true)} aria-label="Destroy">
+                <Trash2 className="size-5" />
+              </Button>
+            ) : null}
+          </div>
         </div>
 
-        {clips.length ? (
-          <div
-            ref={railRef}
-            className="clip-rail flex w-full gap-3 overflow-x-auto px-5 pt-1"
-            aria-label="Clips in this thread"
-          >
-            {clips.map((clip, i) => (
-              <ClipThumb
-                key={clip.id}
-                clip={clip}
-                index={i}
-                active={i === index}
-                onPick={() => {
-                  setIndex(i);
-                  setGone(false);
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
+        <ClipRail
+          clips={clips}
+          activeIndex={index}
+          onPick={(i) => {
+            setIndex(i);
+            setGone(false);
+          }}
+        />
       </div>
 
       {reactOpen ? (
@@ -858,60 +847,16 @@ export function ThreadView({
   );
 }
 
-function ClipThumb({
-  clip,
-  index,
-  active,
-  onPick,
-}: {
-  clip: StoredVideo;
-  index: number;
-  active: boolean;
-  onPick: () => void;
-}) {
-  const [poster, setPoster] = useState<string | null>(null);
-  const isNew = !clip.outgoing && !clip.viewedAt;
-  const label = isNew ? "New" : clip.outgoing ? (clip.theyViewedAt ? "Seen" : "Sent") : "Watched";
-
-  useEffect(() => {
-    let url: string | null = null;
-    let cancelled = false;
-    if (clip.kind === "audio") return;
-    void decryptPoster(clip.id).then((blob) => {
-      if (cancelled || !blob) return;
-      url = URL.createObjectURL(blob);
-      setPoster(url);
-    });
-    return () => {
-      cancelled = true;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [clip.id, clip.kind]);
-
+/** Big record button that sits above the clip rail — same spot as on the camera. */
+function RecordButton({ onClick }: { onClick: () => void }) {
   return (
     <button
       type="button"
-      data-clip-index={index}
-      onClick={onPick}
-      className="flex shrink-0 flex-col items-center gap-1"
-      aria-label={`${label} clip ${index + 1}`}
+      onClick={onClick}
+      aria-label="Record a reply"
+      className="grid size-[72px] place-items-center rounded-full bg-fog shadow-[0_0_0_6px_rgb(255_255_255/0.18)] transition-transform active:scale-[0.96]"
     >
-      <span
-        className={cn(
-          "relative size-14 overflow-hidden rounded-full bg-ink-2",
-          active ? "orb-ring scale-105" : "opacity-80",
-          isNew && "shadow-[0_0_0_2px_var(--color-fog)]",
-        )}
-      >
-        {poster ? (
-          <img src={poster} alt="" className="size-full object-cover" />
-        ) : (
-          <span className="flex size-full items-center justify-center text-mist">
-            {clip.kind === "audio" ? <Mic className="size-5" /> : clip.outgoing ? "You" : ""}
-          </span>
-        )}
-      </span>
-      <span className={cn("text-[10px] font-medium", isNew ? "text-fog" : "text-mute")}>{label}</span>
+      <span className="size-14 rounded-full bg-record" />
     </button>
   );
 }
