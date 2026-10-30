@@ -345,6 +345,8 @@ const envelopeInput = z.object({
   ciphertext: z.string().min(8),
   poster: z.string().nullable(),
   groupId: z.string().nullable().optional(),
+  /** True for clips (wake the recipient's phone); false for receipts and other control messages. */
+  notify: z.boolean().optional(),
 });
 
 export const publishEnvelope = createServerFn({ method: "POST" })
@@ -376,6 +378,10 @@ export const publishEnvelope = createServerFn({ method: "POST" })
         ${false},
         ${null}
       )`;
+    if (data.notify) {
+      const { sendPushTo } = await import("./push.server");
+      await sendPushTo(sql, data.recipientId).catch(() => undefined);
+    }
     return { id };
   });
 
@@ -586,6 +592,8 @@ export const deleteAccount = createServerFn({ method: "POST" })
     await sql`delete from invites where inviter_id = ${context.userId}`;
     await sql`delete from blocks where blocker_id = ${context.userId} or blocked_id = ${context.userId}`;
     await sql`delete from profiles where user_id = ${context.userId}`;
+    await sql`delete from push_subscriptions where user_id = ${context.userId}`;
+    await sql`delete from password_resets where user_id = ${context.userId}`;
     await sql.query(`delete from "user" where id = $1`, [context.userId]);
     return { ok: true as const };
   });

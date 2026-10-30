@@ -365,6 +365,7 @@ export function ThreadView({
         iv: sealed.iv,
         ciphertext: sealed.ciphertext,
         poster: sealed.poster,
+        notify: true,
       });
       toast(`Forwarded to ${to.displayName}`);
       setForwardOpen(false);

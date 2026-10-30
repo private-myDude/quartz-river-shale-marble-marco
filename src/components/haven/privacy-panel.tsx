@@ -1,6 +1,7 @@
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { updateProfile } from "@/lib/haven/api";
-import { ensureNotifyPermission, registerHavenWorker } from "@/lib/haven/notify";
+import { disablePush, enablePush, syncWorkerPrefs } from "@/lib/haven/notify";
 import { setPrefs, usePrefs } from "@/lib/haven/prefs";
 import type { Profile } from "@/lib/haven/types";
 import { PrefSelect } from "./pref-select";
@@ -39,6 +40,11 @@ export function PrivacyPanel({
   onChanged: () => void;
 }) {
   const prefs = usePrefs();
+
+  useEffect(() => {
+    const { quietHours, quietStart, quietEnd } = prefs;
+    void syncWorkerPrefs({ quietHours, quietStart, quietEnd });
+  }, [prefs]);
 
   async function syncProfile(partial: {
     discovery?: "handle" | "anyone";
@@ -115,12 +121,19 @@ export function PrivacyPanel({
             onClick={() => {
               const next = !prefs.notifications;
               setPrefs({ notifications: next });
-              if (next) {
-                void ensureNotifyPermission().then((ok) => {
-                  if (ok) void registerHavenWorker();
-                  else toast("Notifications are blocked on this phone");
-                });
+              if (!next) {
+                void disablePush();
+                return;
               }
+              void enablePush().then((status) => {
+                if (status === "needs-home-screen") {
+                  toast("On iPhone, add Haven to your Home Screen first, then turn this on there.");
+                } else if (status === "blocked") {
+                  toast("Notifications are blocked. Allow them for Haven in your phone’s Settings.");
+                } else if (status === "unsupported") {
+                  toast("This browser can’t show notifications while Haven is closed.");
+                }
+              });
             }}
           />
         </label>

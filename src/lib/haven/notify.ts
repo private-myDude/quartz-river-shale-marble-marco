@@ -1,4 +1,5 @@
-import { readPrefs } from "./prefs";
+import { getPushPublicKey, removePushSubscription, savePushSubscription } from "./push";
+import { readPrefs, type Prefs } from "./prefs";
 
 export async function ensureNotifyPermission(): Promise<boolean> {
   if (typeof Notification === "undefined") return false;
@@ -46,5 +47,85 @@ export async function notifyNewClip(label = "New clip in Haven"): Promise<void> 
     }
   } catch {
     /* ignore */
+  }
+}
+
+// ── Web Push ────────────────────────────────────────────────────────────────
+// Wakes the phone when a clip arrives even if Haven is closed. On iPhone this
+// only works once Haven is added to the Home Screen (iOS 16.4+).
+
+export type PushStatus = "on" | "unsupported" | "needs-home-screen" | "blocked" | "not-configured";
+
+function isIos(): boolean {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function isStandalone(): boolean {
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return nav.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+}
+
+function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
+  const padded = (base64url + "===".slice((base64url.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(padded);
+  const out = new Uint8Array(new ArrayBuffer(raw.length));
+  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function saveSubscription(sub: PushSubscription): Promise<void> {
+  const json = sub.toJSON();
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) return;
+  await savePushSubscription({
+    data: { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth },
+  });
+}
+
+/**
+ * Subscribe this device to push. Call from a tap (iOS only asks for permission
+ * from a user gesture). Safe to call again — it refreshes the saved subscription.
+ */
+export async function enablePush(askPermission = true): Promise<PushStatus> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return "unsupported";
+  if (isIos() && !isStandalone()) return "needs-home-screen";
+  if (!("PushManager" in window) || typeof Notification === "undefined") return "unsupported";
+  if (askPermission ? !(await ensureNotifyPermission()) : Notification.permission !== "granted") {
+    return "blocked";
+  }
+  const { key } = await getPushPublicKey();
+  if (!key) return "not-configured";
+  await registerHavenWorker();
+  const reg = await navigator.serviceWorker.ready;
+  const sub =
+    (await reg.pushManager.getSubscription()) ??
+    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(key) }));
+  await saveSubscription(sub);
+  await syncWorkerPrefs();
+  return "on";
+}
+
+/** Stop push on this device. */
+export async function disablePush(): Promise<void> {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = await reg?.pushManager?.getSubscription();
+  if (!sub) return;
+  await removePushSubscription({ data: { endpoint: sub.endpoint } }).catch(() => undefined);
+  await sub.unsubscribe().catch(() => undefined);
+}
+
+/**
+ * Hand quiet hours to the service worker, which shows pushes while Haven is
+ * closed and can't read the app's settings itself.
+ */
+export async function syncWorkerPrefs(prefs: Pick<Prefs, "quietHours" | "quietStart" | "quietEnd"> = readPrefs()): Promise<void> {
+  if (typeof caches === "undefined") return;
+  try {
+    const cache = await caches.open("haven-prefs");
+    const { quietHours, quietStart, quietEnd } = prefs;
+    await cache.put("/__haven-prefs", new Response(JSON.stringify({ quietHours, quietStart, quietEnd })));
+  } catch {
+    /* cache unavailable — pushes just won't be silenced */
   }
 }

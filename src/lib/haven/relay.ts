@@ -21,6 +21,8 @@ export type OutgoingSeal = {
   ciphertext: string;
   poster: string | null;
   groupId?: string | null;
+  /** Wake the recipient's phone with a push notification (clips only). */
+  notify?: boolean;
 };
 
 export async function relayPublish(seal: OutgoingSeal): Promise<{ id: string }> {

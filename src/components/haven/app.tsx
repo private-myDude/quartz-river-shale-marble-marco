@@ -108,7 +108,8 @@ export function HavenApp() {
     });
     const expiresAt = null;
 
-    async function publishOrQueue(seal: Parameters<typeof relayPublish>[0]) {
+    async function publishOrQueue(clip: Parameters<typeof relayPublish>[0]) {
+      const seal = { ...clip, notify: true };
       const ready = await canSendNow(prefs.wifiOnly);
       if (!ready.ok) {
         await queueSeal(seal);

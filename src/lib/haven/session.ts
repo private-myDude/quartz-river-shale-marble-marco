@@ -26,7 +26,7 @@ import { isPlayable, type Circle, type Friend, type Profile, type StoredVideo } 
 import { readPrefs, setPrefs } from "./prefs";
 import { writeBackupToFolder } from "./cloud";
 import { flushOutbox } from "./outbox";
-import { notifyNewClip, registerHavenWorker } from "./notify";
+import { enablePush, notifyNewClip, registerHavenWorker } from "./notify";
 import { shredPeerCopies } from "./signal";
 import { clearSignupName, readSignupName } from "./signup-name";
 
@@ -181,7 +181,11 @@ export function useHavenSession() {
 
   useEffect(() => {
     if (!unlocked) return;
-    if (readPrefs().notifications) void registerHavenWorker();
+    if (readPrefs().notifications) {
+      void registerHavenWorker();
+      // Keep this device's push subscription fresh without prompting.
+      void enablePush(false).catch(() => undefined);
+    }
     void flushOutbox();
     const onOnline = () => void flushOutbox();
     window.addEventListener("online", onOnline);
