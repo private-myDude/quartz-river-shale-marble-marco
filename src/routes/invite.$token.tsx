@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Atmosphere, HavenMark } from "@/components/haven/atmosphere";
 import { RedirectToSignIn } from "@/lib/auth/gates";
+import { rememberInvite } from "@/lib/auth/invite-only";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { acceptInviteLink, peekInvite } from "@/lib/haven/api";
 import { PENDING_INVITE_KEY } from "@/lib/haven/graph-local";
@@ -53,7 +54,11 @@ function InvitePage() {
       </div>
     );
   }
-  if (!user) return <RedirectToSignIn />;
+  if (!user) {
+    // Carry the invite through sign-up so a new account is allowed, then return here.
+    rememberInvite(token, window.location.pathname + window.location.hash);
+    return <RedirectToSignIn />;
+  }
 
   async function accept() {
     if (!info) return;

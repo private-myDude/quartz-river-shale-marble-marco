@@ -25,7 +25,5 @@ export type GrokProvider = {
   label: string;
 };
 
-export const GROK_PROVIDERS: readonly GrokProvider[] = [
-  { providerId: "grok-google", idp: "google", label: "Google" },
-  { providerId: "grok-x", idp: "twitter", label: "X" },
-];
+// Haven signs in with its own email/password accounts, not Grok's broker.
+export const GROK_PROVIDERS: readonly GrokProvider[] = [];

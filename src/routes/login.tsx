@@ -1,6 +1,12 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { GROK_PROVIDERS, authClient, authEnabled, signIn } from "@/lib/auth/client";
+import { authClient, authEnabled } from "@/lib/auth/client";
+import {
+  INVITE_HEADER,
+  clearPendingInvite,
+  readPendingInvite,
+  type PendingInvite,
+} from "@/lib/auth/invite-only";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +24,13 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [invite, setInvite] = useState<PendingInvite | null>(null);
+
+  useEffect(() => {
+    const pending = readPendingInvite();
+    setInvite(pending);
+    if (pending) setMode("up");
+  }, []);
 
   if (isPending) {
     return (
@@ -48,13 +61,15 @@ function Login() {
           email,
           password,
           name: name.trim() || email.split("@")[0] || "Friend",
+          fetchOptions: invite ? { headers: { [INVITE_HEADER]: invite.token } } : undefined,
         });
         if (err) throw new Error(err.message ?? "Could not create account");
       } else {
         const { error: err } = await authClient.signIn.email({ email, password });
         if (err) throw new Error(err.message ?? "Could not sign in");
       }
-      window.location.href = "/";
+      clearPendingInvite();
+      window.location.href = invite?.returnTo ?? "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not sign in");
       setBusy(false);
@@ -70,7 +85,9 @@ function Login() {
           Private video for the people you love.
         </h1>
         <p className="mt-3 text-sm text-mute">
-          Encrypted on your device. Sealed in transit. Gone when you say so.
+          {invite
+            ? "You’ve been invited. Create an account to join."
+            : "Encrypted on your device. Sealed in transit. Gone when you say so."}
         </p>
       </div>
 
@@ -122,23 +139,9 @@ function Login() {
         </p>
       </form>
 
-      <div className="mt-6 space-y-2 pb-4">
-        {authEnabled ? (
-          GROK_PROVIDERS.map((p) => (
-            <Button
-              key={p.providerId}
-              variant="glass"
-              className="w-full"
-              size="lg"
-              onClick={() => void signIn(p.providerId, { callbackURL: "/" })}
-            >
-              Continue with {p.label}
-            </Button>
-          ))
-        ) : (
-          <p className="text-center text-sm text-mute">Sign-in is disabled.</p>
-        )}
-      </div>
+      <p className="mt-6 pb-4 text-center text-xs text-mute">
+        Haven is invite-only. New here? Open the invite link someone sent you.
+      </p>
     </main>
   );
 }
