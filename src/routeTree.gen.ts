@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ResetTokenRouteImport } from './routes/reset.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetTokenRoute = ResetTokenRouteImport.update({
+  id: '/reset/$token',
+  path: '/reset/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -39,12 +45,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/reset/$token': typeof ResetTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/reset/$token': typeof ResetTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -52,20 +60,28 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/reset/$token': typeof ResetTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/invite/$token' | '/api/auth/$'
+  fullPaths: '/' | '/login' | '/invite/$token' | '/reset/$token' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/invite/$token' | '/api/auth/$'
-  id: '__root__' | '/' | '/login' | '/invite/$token' | '/api/auth/$'
+  to: '/' | '/login' | '/invite/$token' | '/reset/$token' | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/invite/$token'
+    | '/reset/$token'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  ResetTokenRoute: typeof ResetTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -92,6 +108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset/$token': {
+      id: '/reset/$token'
+      path: '/reset/$token'
+      fullPath: '/reset/$token'
+      preLoaderRoute: typeof ResetTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -106,6 +129,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   InviteTokenRoute: InviteTokenRoute,
+  ResetTokenRoute: ResetTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookUser, Link2, Search, UserPlus, Users, X } from "lucide-react";
+import { BookUser, KeyRound, Link2, Search, UserPlus, Users, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ import {
   upsertFriend,
 } from "@/lib/haven/graph-local";
 import { getSessionKeys } from "@/lib/haven/lock";
+import { amIOwner, createPasswordResetLink } from "@/lib/haven/password-reset";
 import { looksLikePhone, normalizePhone } from "@/lib/haven/phone";
 import { sendSealedHeader } from "@/lib/haven/signal";
 import type { Circle, Friend, Profile } from "@/lib/haven/types";
@@ -69,6 +70,13 @@ export function PeopleScreen({
   const [manualPhone, setManualPhone] = useState("");
   const [showManual, setShowManual] = useState(false);
   const [showGroup, setShowGroup] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    void amIOwner()
+      .then((r) => setIsOwner(r.owner))
+      .catch(() => setIsOwner(false));
+  }, []);
 
   const incoming = friends.filter((f) => f.status === "pending-in");
   const outgoing = friends.filter((f) => f.status === "pending-out");
@@ -102,6 +110,34 @@ export function PeopleScreen({
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not create invite";
       if (!/abort|cancel/i.test(message)) toast(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function shareResetLink(friend: Friend) {
+    setBusy(true);
+    try {
+      const { token } = await createPasswordResetLink({ data: { userId: friend.userId } });
+      const url = `${window.location.origin}/reset/${token}`;
+      const text = `${friend.displayName}, here’s your Haven password reset link. It works once, for 24 hours.`;
+      const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+      try {
+        if (nav.share) {
+          await nav.share({ title: "Reset your Haven password", text, url });
+        } else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+          toast(`Reset link for ${friend.displayName} copied`);
+        } else {
+          toast(url);
+        }
+      } catch (shareErr) {
+        const message = shareErr instanceof Error ? shareErr.message : "";
+        if (/abort|cancel/i.test(message)) return;
+        toast(url);
+      }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not create reset link");
     } finally {
       setBusy(false);
     }
@@ -566,17 +602,28 @@ export function PeopleScreen({
         {accepted.length ? (
           <div className="space-y-2">
             {accepted.map((f) => (
-              <button
-                key={f.userId}
-                type="button"
-                onClick={() => onOpen(f.userId)}
-                className="glass flex w-full items-center justify-between rounded-xl px-4 py-3 text-left"
-              >
-                <span>
+              <div key={f.userId} className="glass flex w-full items-center rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => onOpen(f.userId)}
+                  className="flex-1 px-4 py-3 text-left"
+                >
                   <span className="block text-sm font-medium">{f.displayName}</span>
                   <span className="text-xs text-mute">@{f.handle}</span>
-                </span>
-              </button>
+                </button>
+                {isOwner ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="mr-2"
+                    disabled={busy}
+                    onClick={() => void shareResetLink(f)}
+                    aria-label={`Send ${f.displayName} a password reset link`}
+                  >
+                    <KeyRound className="size-5" />
+                  </Button>
+                ) : null}
+              </div>
             ))}
           </div>
         ) : (

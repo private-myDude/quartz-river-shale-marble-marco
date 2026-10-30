@@ -135,6 +135,11 @@ function Login() {
         <Button type="submit" className="w-full" size="lg" disabled={busy || !authEnabled}>
           {mode === "up" ? "Create account" : "Continue"}
         </Button>
+        {mode === "in" ? (
+          <p className="text-center text-xs text-mute">
+            Forgot your password? Ask the person who invited you for a reset link.
+          </p>
+        ) : null}
         <p className="text-center text-xs text-mute">
           Phone finds an existing account. Email is the login. Face ID is a device lock, set after you
           enter.
